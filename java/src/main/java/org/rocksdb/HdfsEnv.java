@@ -5,6 +5,8 @@
 
 package org.rocksdb;
 
+import java.util.Map;
+
 /**
  * HDFS environment.
  */
@@ -22,6 +24,13 @@ public class HdfsEnv extends Env {
     super(createHdfsEnv(fsName));
   }
 
+  public HdfsEnv(final String fsName, final Map<String, String> config) {
+    super(createHdfsEnv1(fsName, config));
+  }
+
   private static native long createHdfsEnv(final String fsName);
+
+  private static native long createHdfsEnv1(final String fsName, final Map<String, String> config);
+
   @Override protected final native void disposeInternal(final long handle);
 }

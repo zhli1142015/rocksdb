@@ -3861,6 +3861,7 @@ class Benchmark {
 #ifndef ROCKSDB_LITE
         Status rc_status;
 
+		//auto *tempEnv = ROCKSDB_NAMESPACE::Env::Default();
         // Read cache need to be provided with a the Logger, we will put all
         // reac cache logs in the read cache path in a file named rc_LOG
         rc_status = FLAGS_env->CreateDirIfMissing(FLAGS_read_cache_path);
@@ -3873,13 +3874,13 @@ class Benchmark {
         if (rc_status.ok()) {
           PersistentCacheConfig rc_cfg(FLAGS_env, FLAGS_read_cache_path,
                                        FLAGS_read_cache_size,
-                                       read_cache_logger);
+			  options.info_log);
 
           rc_cfg.enable_direct_reads = FLAGS_read_cache_direct_read;
           rc_cfg.enable_direct_writes = FLAGS_read_cache_direct_write;
           rc_cfg.writer_qdepth = 4;
           rc_cfg.writer_dispatch_size = 4 * 1024;
-
+		  //rc_cfg.is_compressed = false;
           auto pcache = std::make_shared<BlockCacheTier>(rc_cfg);
           block_based_options.persistent_cache = pcache;
           rc_status = pcache->Open();
@@ -7103,7 +7104,13 @@ int db_bench_tool(int argc, char** argv) {
   }
 
   if (!FLAGS_hdfs.empty()) {
-    FLAGS_env = new ROCKSDB_NAMESPACE::HdfsEnv(FLAGS_hdfs);
+	  std::map<std::string, std::string> config;
+	  config["fs.azure.account.key.rdbtest3.dfs.core.windows.net"] =
+		  "vrqXc0DtiycbPwJa+ejHW7j2jpI6ky38Io7Z1Sb+/Pp/YqJQAj87YilJn8MR+6cx6+gKAZnC0WVbqsVg8+00FQ==";
+	  config["fs.defaultFS"] = "abfs://test@rdbtest3.dfs.core.windows.net";
+	  config["fs.abfs.impl"] = "org.apache.hadoop.fs.azurebfs.AzureBlobFileSystem";
+	  config["fs.AbstractFileSystem.abfs.impl"] = "org.apache.hadoop.fs.azurebfs.Abfs";
+	  FLAGS_env = new ROCKSDB_NAMESPACE::HdfsEnv(FLAGS_hdfs, &config);
   }
 
   if (!strcasecmp(FLAGS_compaction_fadvice.c_str(), "NONE"))

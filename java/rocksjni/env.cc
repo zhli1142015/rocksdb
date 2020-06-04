@@ -202,6 +202,64 @@ jlong Java_org_rocksdb_HdfsEnv_createHdfsEnv(
 }
 
 /*
+* Class:     org_rocksdb_HdfsEnv
+* Method:    createHdfsEnv
+* Signature: (Ljava/lang/String;)J
+*/
+jlong Java_org_rocksdb_HdfsEnv_createHdfsEnv1(
+	JNIEnv* env, jclass, jstring jfsname, jobject jConfig) {
+	jboolean has_exception = JNI_FALSE;
+	auto fsname =
+		ROCKSDB_NAMESPACE::JniUtil::copyStdString(env, jfsname, &has_exception);
+	if (has_exception == JNI_TRUE) {
+		// exception occurred
+		return 0;
+	}
+
+	std::map<std::string, std::string> cConfig;
+
+	jclass jmapclass = env->FindClass("java/util/Map");
+	jmethodID jkeysetmid = env->GetMethodID(jmapclass, "keySet", "()Ljava/util/Set;");
+	jmethodID jgetmid = env->GetMethodID(jmapclass, "get", "(Ljava/lang/Object;)Ljava/lang/Object;");
+	jobject jsetkey = env->CallObjectMethod(jConfig, jkeysetmid);
+	jclass jsetclass = env->FindClass("java/util/Set");
+	jmethodID jtoArraymid = env->GetMethodID(jsetclass, "toArray", "()[Ljava/lang/Object;");
+	jobjectArray jobjArray = (jobjectArray)env->CallObjectMethod(jsetkey, jtoArraymid);
+	if (jobjArray != NULL) {
+		jsize arraysize = env->GetArrayLength(jobjArray);
+		int i = 0;
+		for (i = 0; i < arraysize; i++) {
+			jstring jkey = (jstring)env->GetObjectArrayElement(jobjArray, i);
+			jstring jvalue = (jstring)env->CallObjectMethod(jConfig, jgetmid, jkey);
+			auto key =
+				ROCKSDB_NAMESPACE::JniUtil::copyStdString(env, jkey, &has_exception);
+			if (has_exception == JNI_TRUE) {
+				// exception occurred
+				return 0;
+			}
+
+			auto value =
+				ROCKSDB_NAMESPACE::JniUtil::copyStdString(env, jvalue, &has_exception);
+			if (has_exception == JNI_TRUE) {
+				// exception occurred
+				return 0;
+			}
+			cConfig[key] = value;
+		}
+	}
+	
+	ROCKSDB_NAMESPACE::Env* hdfs_env;
+	ROCKSDB_NAMESPACE::Status s =
+		ROCKSDB_NAMESPACE::NewHdfsEnv1(&hdfs_env, fsname, &cConfig);
+	if (!s.ok()) {
+		// error occurred
+		ROCKSDB_NAMESPACE::RocksDBExceptionJni::ThrowNew(env, s);
+		return 0;
+	}
+	return reinterpret_cast<jlong>(hdfs_env);
+}
+
+/*
  * Class:     org_rocksdb_HdfsEnv
  * Method:    disposeInternal
  * Signature: (J)V

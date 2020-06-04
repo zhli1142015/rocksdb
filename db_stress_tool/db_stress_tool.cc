@@ -67,7 +67,13 @@ int db_stress_tool(int argc, char** argv) {
       fprintf(stderr, "Cannot specify both --hdfs and --env_uri.\n");
       exit(1);
     }
-    raw_env = new ROCKSDB_NAMESPACE::HdfsEnv(FLAGS_hdfs);
+	std::map<std::string, std::string> config;
+	config["fs.azure.account.key.rdbtest3.dfs.core.windows.net"] =
+		"vrqXc0DtiycbPwJa+ejHW7j2jpI6ky38Io7Z1Sb+/Pp/YqJQAj87YilJn8MR+6cx6+gKAZnC0WVbqsVg8+00FQ==";
+	config["fs.defaultFS"] = "abfs://test@rdbtest3.dfs.core.windows.net";
+	config["fs.abfs.impl"] = "org.apache.hadoop.fs.azurebfs.AzureBlobFileSystem";
+	config["fs.AbstractFileSystem.abfs.impl"] = "org.apache.hadoop.fs.azurebfs.Abfs";
+    raw_env = new ROCKSDB_NAMESPACE::HdfsEnv(FLAGS_hdfs, &config);
   } else if (!FLAGS_env_uri.empty()) {
     Status s = Env::LoadEnv(FLAGS_env_uri, &raw_env, &env_guard);
     if (raw_env == nullptr) {

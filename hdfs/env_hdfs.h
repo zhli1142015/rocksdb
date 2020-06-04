@@ -49,6 +49,11 @@ class HdfsEnv : public Env {
     fileSys_ = connectToPath(fsname_);
   }
 
+  explicit HdfsEnv(const std::string& fsname, const std::map<std::string, std::string>* config) : fsname_(fsname) {
+	  posixEnv = Env::Default();
+	  fileSys_ = connectToPath(fsname_, config);
+  }
+
   virtual ~HdfsEnv() {
     fprintf(stderr, "Destroying HdfsEnv::Default()\n");
     hdfsDisconnect(fileSys_);
@@ -163,11 +168,10 @@ class HdfsEnv : public Env {
   }
 
   static uint64_t gettid() {
-    assert(sizeof(pthread_t) <= sizeof(uint64_t));
-    return (uint64_t)pthread_self();
+	 return  1;
   }
 
-  uint64_t GetThreadID() const override { return HdfsEnv::gettid(); }
+  uint64_t GetThreadID() const override { return posixEnv->GetThreadID(); }
 
  private:
   std::string fsname_;  // string of the form "hdfs://hostname:port/"
@@ -203,19 +207,38 @@ class HdfsEnv : public Env {
     }
     // parts[0] = hosts, parts[1] = port/xxx/yyy
     std::string host(parts[0]);
-    std::string remaining(parts[1]);
 
-    int rem = static_cast<int>(remaining.find(pathsep));
-    std::string portStr = (rem == 0 ? remaining :
-                           remaining.substr(0, rem));
-
-    tPort port;
-    port = atoi(portStr.c_str());
-    if (port == 0) {
-      throw HdfsFatalException("Bad host-port for hdfs " + uri);
-    }
-    hdfsFS fs = hdfsConnectNewInstance(host.c_str(), port);
+    hdfsFS fs = hdfsConnectNewInstance(host.c_str(), 0);
     return fs;
+  }
+
+  hdfsFS connectToPath(const std::string& uri, const std::map<std::string, std::string>* config) {
+	  if (uri.empty()) {
+		  return nullptr;
+	  }
+
+	  struct hdfsBuilder *bld = hdfsNewBuilder();
+	  if (!bld) {
+		  return nullptr;
+	  }
+	//  FILE *fp;
+	  //fp = fopen("D:\\Git\\rocksdb\\rocksdb\\build\\Release\\1.txt", "w");
+	  if (uri.find("://") == std::string::npos) {
+		//  fprintf(fp, "default\n");
+		  hdfsBuilderSetNameNode(bld, "default");
+	  }
+	  else {
+		  hdfsBuilderSetNameNode(bld, uri.c_str());
+	  }
+	  
+	  hdfsBuilderSetNameNodePort(bld, 0);
+	  for (const auto& o : (*config)) {
+		//  fprintf(fp, "config:%s %s\n", o.first.c_str(), o.second.c_str());
+		  hdfsBuilderConfSetStr(bld, o.first.c_str(), o.second.c_str());
+	  }
+	  //fclose(fp);
+	  hdfsBuilderSetForceNewInstance(bld);
+	  return hdfsBuilderConnect(bld);
   }
 
   void split(const std::string &s, char delim,

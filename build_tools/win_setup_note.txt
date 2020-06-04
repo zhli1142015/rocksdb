@@ -1,0 +1,60 @@
+cd %CODE_HOME%
+curl -LO https://github.com/gflags/gflags/archive/v2.2.0.zip
+unzip v2.2.0.zip
+cd gflags-2.2.0
+mkdir target
+cd target
+cmake -G "Visual Studio 14 Win64" ..
+
+msbuild gflags.sln /p:Configuration=Debug /p:Platform=x64
+msbuild gflags.sln /p:Configuration=Release /p:Platform=x64
+
+cd %CODE_HOME%
+curl -LO https://github.com/google/snappy/archive/1.1.7.zip
+unzip 1.1.7.zip
+cd snappy-1.1.7
+mkdir build
+cd build
+cmake -DCMAKE_GENERATOR_PLATFORM=x64 ..
+msbuild Snappy.sln /p:Configuration=Debug /p:Platform=x64
+msbuild Snappy.sln /p:Configuration=Release /p:Platform=x64
+
+cd %CODE_HOME%
+curl -LO https://github.com/lz4/lz4/archive/v1.9.2.zip
+unzip v1.9.2.zip
+cd lz4-1.9.2
+cd visual\VS2010
+devenv lz4.sln /upgrade
+msbuild lz4.sln /p:Configuration=Debug /p:Platform=x64
+msbuild lz4.sln /p:Configuration=Release /p:Platform=x64
+
+cd %CODE_HOME%
+curl -LO http://zlib.net/zlib1211.zip
+unzip zlib1211.zip
+cd zlib-1.2.11\contrib\vstudio\vc14
+"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64_x86\vcvarsamd64_x86.bat"
+msbuild zlibvc.sln /p:Configuration=Debug /p:Platform=x64
+msbuild zlibvc.sln /p:Configuration=Release /p:Platform=x64
+copy x64\ZlibDllDebug\zlibwapi.lib x64\ZlibStatDebug\
+copy x64\ZlibDllRelease\zlibwapi.lib x64\ZlibStatRelease\
+
+cd %CODE_HOME%
+curl -LO https://github.com/facebook/zstd/archive/v1.4.4.zip
+unzip v1.4.4.zip
+cd zstd-1.4.4\build\VS2010
+devenv zstd.sln /upgrade
+msbuild zstd.sln /p:Configuration=Debug /p:Platform=x64
+msbuild zstd.sln /p:Configuration=Release /p:Platform=x64
+
+
+
+cd %CODE_HOME%
+
+cd rocksdb
+git pull master
+cd build
+
+set THIRDPARTY_HOME=%CODE_HOME%
+cmake -G "Visual Studio 14 Win64" -DJNI=1 -DGFLAGS=1 -DSNAPPY=1 -DLZ4=1 -DZLIB=1 -DZSTD=1 -DXPRESS=1 ..
+msbuild rocksdb.sln /p:Configuration=Release
+
